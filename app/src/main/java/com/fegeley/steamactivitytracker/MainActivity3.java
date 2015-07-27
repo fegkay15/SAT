@@ -11,7 +11,7 @@ import android.view.View;
 import android.widget.AdapterView;
 
 
-public class MainActivity3 extends ActionBarActivity implements AdapterView.OnItemSelectedListener{
+public class MainActivity3 extends ActionBarActivity {
 
     private Intent goToAct1 = new Intent("android.intent.action.MAIN");
 
@@ -47,15 +47,5 @@ public class MainActivity3 extends ActionBarActivity implements AdapterView.OnIt
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-
-    }
-
-    @Override
-    public void onNothingSelected(AdapterView<?> adapterView) {
-
     }
 }
