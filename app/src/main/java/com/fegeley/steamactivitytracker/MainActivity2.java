@@ -22,6 +22,9 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.XML;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -228,5 +231,21 @@ public class MainActivity2 extends ActionBarActivity {
 
     public String libraryHours(){
         return "xxxx.x";
+    }
+
+    public Document getXMLFromJSON (String url){
+        String xml = "";
+        XMLParser parser = new XMLParser();
+        JsonReader read = new JsonReader();
+        JSONObject json;
+        try {
+            json = read.readJsonFromUrl(url);
+            xml = XML.toString(json);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return parser.getDomElement(xml); // getting DOM element
     }
 }
