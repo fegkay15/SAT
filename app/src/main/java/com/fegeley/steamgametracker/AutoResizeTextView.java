@@ -1,4 +1,4 @@
-package com.fegeley.steamactivitytracker;
+package com.fegeley.steamgametracker;
 
 import android.annotation.TargetApi;
 import android.content.Context;

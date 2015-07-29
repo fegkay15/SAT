@@ -1,22 +1,10 @@
-package com.fegeley.steamactivitytracker;
+package com.fegeley.steamgametracker;
 
-import android.app.ActionBar;
-import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.StrictMode;
-import android.renderscript.Element;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.util.Log;
-import android.util.Xml;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -24,37 +12,16 @@ import android.widget.Toast;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.XML;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xmlpull.v1.XmlPullParser;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpression;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
 
 
 public class MainActivity2 extends ActionBarActivity {
@@ -65,8 +32,15 @@ public class MainActivity2 extends ActionBarActivity {
     private String key = returnKey.returnMyKey();
     private String profStatURL = "http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?format=xml&key=" + key + "&steamids=";
     private String gamesURL = "http://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?format=xml&key=" + key + "&steamid=";
+    private String gamePage = "http://store.steampowered.com/api/appdetails/?appids=";
+    private int[] time;
+    private int[] ids;
+    private double[] price;
+    private double[] appsFormatedPrice;
     private Document profile;
     private Document games;
+    private String[] appsUnFormatedPrice;
+    private JSONObject[] apps;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -176,19 +150,29 @@ public class MainActivity2 extends ActionBarActivity {
         return parser.getValue(e, "game_count");
     }
 
-    public String getGames(String tag){
+    public String getGameTime(){
         XMLParser parser = new XMLParser();
-        NodeList play = games.getElementsByTagName("players");
+        NodeList play = games.getElementsByTagName("games");
 
         if(play.getLength() > 0){
             Node n = play.item(0);
             Node child = n.getFirstChild();
+            double totalTime = 0;
             if(child == null){
                 return null;
             }else {
-                NodeList nl = games.getElementsByTagName("player");
-                org.w3c.dom.Element e = (org.w3c.dom.Element) nl.item(0);
-                return parser.getValue(e, tag);
+                NodeList nl = games.getElementsByTagName("message");
+                time = new int[nl.getLength()];
+                for(int i = 0; i < nl.getLength(); i++) {
+                    org.w3c.dom.Element e = (org.w3c.dom.Element) nl.item(i);
+                    time[i] = Integer.parseInt(parser.getValue(e, "playtime_forever"));
+                }
+                for(int i = 0; i < nl.getLength(); i++){
+                    totalTime = totalTime + (double)time[i];
+                }
+                totalTime = totalTime/60;
+                NumberFormat formatter = new DecimalFormat("#0.0");
+                return formatter.format(totalTime);
             }
         }
 
@@ -218,34 +202,72 @@ public class MainActivity2 extends ActionBarActivity {
         date.setTime((long) creationTime * 1000);
         TextView description = (TextView) findViewById(R.id.textView8);
         description.setText("Over the " + getDiffYears(date) + "+ years you have been on Steam, your library has grown to " + gameCount() +
-                " items, currently valued at " + libraryPrice() + ", requires " + librarySize() + "GB, and you've spent " + libraryHours() + " hours playing it.");
+                " items, currently valued at $" + libraryPrice() + ", requires " + librarySize() + "GB, and you've spent " + getGameTime() + " hours playing it.");
     }
 
     public String libraryPrice(){
-        return "$xxxx.xx";
+        XMLParser parser = new XMLParser();
+        NodeList play = games.getElementsByTagName("games");
+
+        if(play.getLength() > 0){
+            Node n = play.item(0);
+            Node child = n.getFirstChild();
+            double totalTime = 0;
+            if(child == null){
+                return null;
+            }else {
+                NodeList nl = games.getElementsByTagName("message");
+                ids = new int[nl.getLength()];
+                for(int i = 0; i < nl.getLength(); i++) {
+                    org.w3c.dom.Element e = (org.w3c.dom.Element) nl.item(i);
+                    ids[i] = Integer.parseInt(parser.getValue(e, "appid"));
+                }
+                apps = new JSONObject[nl.getLength()];
+                for(int i = 0; i < nl.getLength(); i++){
+                    try {
+                        apps[i] = JsonReader.readJsonFromUrl(gamePage + ids[i]);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }
+                appsUnFormatedPrice = new String[nl.getLength()];
+                for(int i = 0; i < nl.getLength(); i++){
+                        appsUnFormatedPrice[i] = getAppPrice(apps[i]);
+                }
+                appsFormatedPrice = new double[nl.getLength()];
+                for(int i = 0; i < nl.getLength(); i++){
+                    if(appsUnFormatedPrice[i].length() < 3) {
+                        appsUnFormatedPrice[i] = "00" + appsUnFormatedPrice[i];
+                    }
+                    appsFormatedPrice[i] = Double.parseDouble(new StringBuffer(appsUnFormatedPrice[i]).insert(appsUnFormatedPrice[i].length() - 2, ".").toString());
+                }
+                double totalPrice = 0.0;
+                for(int i = 0; i <nl.getLength(); i++){
+                    System.out.println(appsFormatedPrice[i]);
+                    totalPrice = totalPrice + appsFormatedPrice[i];
+                }
+                NumberFormat formatter = new DecimalFormat("#0.00");
+                return formatter.format(totalPrice);
+            }
+        }
+        return "xxxx.xx";
     }
 
     public String librarySize(){
         return "xxxx.x";
     }
 
-    public String libraryHours(){
-        return "xxxx.x";
-    }
-
-    public Document getXMLFromJSON (String url){
-        String xml = "";
-        XMLParser parser = new XMLParser();
-        JsonReader read = new JsonReader();
-        JSONObject json;
-        try {
-            json = read.readJsonFromUrl(url);
-            xml = XML.toString(json);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (JSONException e) {
-            e.printStackTrace();
+    public String getAppPrice(JSONObject json){
+        String result = null;
+        String bool = json.toString().substring(json.toString().indexOf("\"is_free\":") + 10, json.toString().indexOf("\"is_free\":") + 15);
+        if(bool.equals("false")) {
+            result = json.toString().substring(json.toString().indexOf("\"final\":") + 8, json.toString().indexOf(",\"discount_percent\""));
+        } else {
+            result = "0000";
         }
-        return parser.getDomElement(xml); // getting DOM element
+        System.out.println(result);
+        return result;
     }
 }

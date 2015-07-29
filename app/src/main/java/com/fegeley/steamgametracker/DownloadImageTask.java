@@ -1,4 +1,4 @@
-package com.fegeley.steamactivitytracker;
+package com.fegeley.steamgametracker;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;

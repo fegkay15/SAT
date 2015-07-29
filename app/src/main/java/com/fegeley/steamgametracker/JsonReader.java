@@ -1,4 +1,4 @@
-package com.fegeley.steamactivitytracker;
+package com.fegeley.steamgametracker;
 
 import java.io.BufferedReader;
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package com.fegeley.steamactivitytracker;
+package com.fegeley.steamgametracker;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;
